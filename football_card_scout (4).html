@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScoutCard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --border: #e2ddd6;
+    --border-strong: #c8c2b8;
+    --text: #1c1917;
+    --muted: #78716c;
+    --faint: #a8a29e;
+    --accent: #2d5a3d;
+    --accent-light: #eaf2ed;
+    --accent-mid: #4a7c5f;
+    --gold: #92703a;
+    --gold-light: #f5f0e8;
+    --red: #8b3a3a;
+    --red-light: #f5eaea;
+    --blue: #2c4a6e;
+    --blue-light: #eaeff5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Manrope', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .logo em { font-style: italic; color: var(--accent); }
+
+  .live-dot {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .live-dot::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: block;
+  }
+
+  .api-banner {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 48px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .api-banner label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .api-banner input {
+    flex: 1;
+    min-width: 240px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .api-banner input:focus { border-color: var(--accent); }
+  .api-banner .btn-save {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .api-banner .btn-save:hover { background: var(--accent-mid); }
+  .api-banner .key-status { font-size: 12px; color: var(--accent); font-weight: 500; }
+  .api-banner .key-status.error { color: var(--red); }
+  .api-banner a {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    margin-left: auto;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1px;
+    transition: color 0.15s;
+  }
+  .api-banner a:hover { color: var(--text); }
+
+  .tabs {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 48px;
+    display: flex;
+  }
+  .tab {
+    padding: 16px 0;
+    margin-right: 32px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--faint);
+    background: none;
+    border: none;
+    border-bottom: 1.5px solid transparent;
+    cursor: pointer;
+    font-family: 'Manrope', sans-serif;
+    letter-spacing: 0.2px;
+    transition: color 0.15s;
+  }
+  .tab:hover { color: var(--muted); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  .panel { display: none; padding: 48px; max-width: 1100px; }
+  .panel.active { display: block; }
+
+  .search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 36px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .search-bar input,
+  .search-bar select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+  }
+  .search-bar input:focus,
+  .search-bar select:focus { border-color: var(--accent); }
+  .search-bar input { flex: 1; min-width: 200px; }
+  .search-bar select { min-width: 150px; }
+
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--accent-mid); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { background: var(--border); color: var(--faint); cursor: not-allowed; }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 9px 16px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .alert-info {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    line-height: 1.65;
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .player-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .player-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    border-color: var(--border-strong);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .player-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 5px;
+  }
+
+  .player-meta {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .score-badge {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .score-badge.elite { background: var(--accent-light); color: var(--accent); }
+  .score-badge.high  { background: var(--gold-light);   color: var(--gold); }
+  .score-badge.mid   { background: var(--blue-light);   color: var(--blue); }
+  .score-badge.low   { background: var(--red-light);    color: var(--red); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .stat-box {
+    background: var(--bg);
+    border-radius: 4px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+  .stat-val { font-size: 15px; font-weight: 500; color: var(--text); }
+
+  .progress-label {
+    font-size: 10px;
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+    margin-bottom: 7px;
+  }
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.6s ease; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+  .tag { font-size: 11px; padding: 3px 9px; border-radius: 3px; font-weight: 500; }
+  .tag-green { background: var(--accent-light); color: var(--accent); }
+  .tag-gold  { background: var(--gold-light);   color: var(--gold); }
+  .tag-blue  { background: var(--blue-light);   color: var(--blue); }
+  .tag-red   { background: var(--red-light);    color: var(--red); }
+
+  .card-footer {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-value { font-size: 12px; color: var(--muted); }
+  .card-value strong { color: var(--text); font-size: 14px; font-weight: 600; }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 20px;
+  }
+
+  .loading-state, .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--faint);
+    font-size: 14px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 14px; opacity: 0.35; }
+
+  .loading-dots { display: inline-flex; gap: 5px; margin-top: 18px; }
+  .loading-dots span {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+    opacity: 0.4;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-7px); opacity: 1; }
+  }
+
+  .detail-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(28,25,23,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .detail-modal.open { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 36px;
+    max-width: 580px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 18px; right: 20px;
+    background: none;
+    border: none;
+    color: var(--faint);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.15s;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .ai-response { font-size: 14px; line-height: 1.85; color: var(--muted); white-space: pre-wrap; }
+
+  .typing-indicator { display: inline-flex; gap: 4px; align-items: center; }
+  .typing-indicator span {
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: bounce 1s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+
+  .divider {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .divider span:first-child { color: var(--muted); }
+  .divider span:last-child { color: var(--text); font-weight: 500; }
+
+  .callout {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: var(--accent-light);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+  }
+  .callout-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 7px;
+  }
+  .callout-text { font-size: 13px; color: var(--text); line-height: 1.75; }
+
+  @media (max-width: 680px) {
+    header, .api-banner, .tabs { padding-left: 20px; padding-right: 20px; }
+    .panel { padding: 24px 20px; }
+    .tab { margin-right: 18px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Scout<em>Card</em></div>
+  <div class="live-dot">Live Research</div>
+</header>
+
+<div class="api-banner">
+  <label>API Key</label>
+  <input id="api-key-input" type="password" placeholder="Paste your Anthropic API key (sk-ant-...)" />
+  <button class="btn-save" onclick="saveApiKey()">Save</button>
+  <span id="key-status" class="key-status"></span>
+  <a href="https://console.anthropic.com/settings/keys" target="_blank">Get a key →</a>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('wonderkids', event)">Wonderkids</button>
+  <button class="tab" onclick="switchTab('cards', event)">Card Prices</button>
+  <button class="tab" onclick="switchTab('stats', event)">Player Stats</button>
+  <button class="tab" onclick="switchTab('watchlist', event)">Watchlist</button>
+</div>
+
+<div id="panel-wonderkids" class="panel active">
+  <div class="alert-info">AI scours multiple sources to find top wonderkids based on age, current form, potential ratings, transfer buzz, and market interest. Results are scored 0–100.</div>
+  <div class="search-bar">
+    <select id="wk-league">
+      <option value="">All Leagues</option>
+      <option value="Premier League">Premier League</option>
+      <option value="La Liga">La Liga</option>
+      <option value="Bundesliga">Bundesliga</option>
+      <option value="Serie A">Serie A</option>
+      <option value="Ligue 1">Ligue 1</option>
+      <option value="Eredivisie">Eredivisie</option>
+    </select>
+    <select id="wk-pos">
+      <option value="">All Positions</option>
+      <option value="Forward">Forward</option>
+      <option value="Midfielder">Midfielder</option>
+      <option value="Defender">Defender</option>
+      <option value="Goalkeeper">Goalkeeper</option>
+    </select>
+    <select id="wk-age">
+      <option value="21">Under 21</option>
+      <option value="19">Under 19</option>
+      <option value="23">Under 23</option>
+    </select>
+    <button class="btn" onclick="searchWonderkids()">Scan Wonderkids</button>
+  </div>
+  <div id="wk-results" class="empty-state">
+    <div class="empty-icon">⚽</div>
+    <div>Hit "Scan Wonderkids" to find top prospects</div>
+  </div>
+</div>
+
+<div id="panel-cards" class="panel">
+  <div class="alert-info">Search for physical trading card prices across Panini, Topps, eBay, and collector marketplaces. AI synthesises recent sale data and price trends.</div>
+  <div class="search-bar">
+    <input id="card-player" type="text" placeholder="Player name (e.g. Lamine Yamal)..." />
+    <select id="card-type">
+      <option value="">All Card Types</option>
+      <option value="Prizm">Prizm</option>
+      <option value="Chrome">Chrome</option>
+      <option value="Gold">Gold Parallel</option>
+      <option value="Auto">Auto/Signed</option>
+      <option value="Rookie">Rookie Card</option>
+    </select>
+    <button class="btn" onclick="searchCardPrices()">Find Prices</button>
+  </div>
+  <div id="card-results" class="empty-state">
+    <div class="empty-icon">🃏</div>
+    <div>Search for a player to see card prices</div>
+  </div>
+</div>
+
+<div id="panel-stats" class="panel">
+  <div class="alert-info">Pull current season stats, form ratings, and performance trends. AI evaluates whether a player is over- or under-performing their card value.</div>
+  <div class="search-bar">
+    <input id="stats-player" type="text" placeholder="Player name..." />
+    <select id="stats-season">
+      <option value="2024/25">2024/25 Season</option>
+      <option value="2023/24">2023/24 Season</option>
+    </select>
+    <button class="btn" onclick="searchStats()">Get Stats</button>
+  </div>
+  <div id="stats-results" class="empty-state">
+    <div class="empty-icon">📊</div>
+    <div>Search for a player to see their stats</div>
+  </div>
+</div>
+
+<div id="panel-watchlist" class="panel">
+  <div class="section-title">Your Watchlist</div>
+  <div id="watchlist-container"></div>
+</div>
+
+<div class="detail-modal" id="detail-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://api.anthropic.com/v1/messages";
+let watchlist = JSON.parse(localStorage.getItem('scoutcard-watchlist') || '[]');
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const status = document.getElementById('key-status');
+  if (!key.startsWith('sk-ant-')) {
+    status.className = 'key-status error';
+    status.textContent = 'Invalid key format';
+    return;
+  }
+  try { localStorage.setItem('scoutcard-apikey', key); } catch {}
+  status.className = 'key-status';
+  status.textContent = '✓ Saved';
+  document.getElementById('api-key-input').value = '••••••••••••••••••••';
+}
+
+function getApiKey() {
+  try { return localStorage.getItem('scoutcard-apikey') || ''; } catch { return ''; }
+}
+
+window.addEventListener('load', function() {
+  if (getApiKey()) {
+    document.getElementById('api-key-input').value = '••••••••••••••••••••';
+    var s = document.getElementById('key-status');
+    s.className = 'key-status';
+    s.textContent = '✓ Key loaded';
+  }
+});
+
+function switchTab(name, e) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  e.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'watchlist') renderWatchlist();
+}
+
+async function callClaude(prompt) {
+  var key = getApiKey();
+  if (!key) { alert('Please enter your Anthropic API key at the top of the page.'); return ''; }
+  var res = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  var data = await res.json();
+  var textBlock = data.content && data.content.find(function(b) { return b.type === 'text'; });
+  return textBlock ? textBlock.text : '';
+}
+
+async function callClaudeJSON(prompt) {
+  var key = getApiKey();
+  if (!key) { alert('Please enter your Anthropic API key at the top of the page.'); return null; }
+  var res = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: 'You are a football analytics AI. Always respond with valid JSON only. No markdown, no backticks, no explanation outside the JSON structure.',
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  var data = await res.json();
+  var textBlock = data.content && data.content.find(function(b) { return b.type === 'text'; });
+  var raw = textBlock ? textBlock.text : '[]';
+  try { return JSON.parse(raw.replace(/```json|```/g, '').trim()); } catch (e) { return null; }
+}
+
+function getScoreClass(score) {
+  if (score >= 85) return 'elite';
+  if (score >= 70) return 'high';
+  if (score >= 55) return 'mid';
+  return 'low';
+}
+
+function showLoading(id, msg) {
+  document.getElementById(id).innerHTML = '<div class="loading-state"><div style="font-size:13px;color:var(--muted);">' + msg + '</div><div class="loading-dots"><span></span><span></span><span></span></div></div>';
+}
+
+async function searchWonderkids() {
+  var league = document.getElementById('wk-league').value;
+  var pos = document.getElementById('wk-pos').value;
+  var age = document.getElementById('wk-age').value;
+  showLoading('wk-results', 'Scanning sources for wonderkids...');
+
+  var prompt = 'You are a football card investment analyst. Search the web for the top 6 real-life football wonderkids right now in March 2026, cross-referencing TWO sources: 1) Real-world performance data from Transfermarkt, FBref, WhoScored and football news. 2) Wonderkid potential ratings from fmscout.com - these potential ratings are a leading indicator for card price movements. Filters: ' + (league ? 'League: ' + league : 'All top leagues') + ', ' + (pos ? 'Position: ' + pos : 'All positions') + ', Under ' + age + ' years old. Prioritise players who rank highly in BOTH real-world form AND scouting potential as these are the strongest card investment signals. For each player return a JSON array with objects: { "name": string, "age": number, "club": string, "league": string, "position": string, "nationality": string, "potentialScore": number (0-100), "fmRating": string (potential stars or PA rating e.g. "5-star" or "PA 180", otherwise "N/A"), "goals": number, "assists": number, "marketValue": string (e.g. "45M EUR"), "tags": array of 2-4 short tag strings, "buySignal": string (1 sentence card investment recommendation) } Return only the JSON array.';
+
+  var players = await callClaudeJSON(prompt);
+  if (!players || !players.length) {
+    document.getElementById('wk-results').innerHTML = '<div class="empty-state"><div>Could not fetch results. Try again.</div></div>';
+    return;
+  }
+  var html = '<div class="results-grid">';
+  for (var i = 0; i < players.length; i++) { html += playerCard(players[i]); }
+  html += '</div>';
+  document.getElementById('wk-results').innerHTML = html;
+}
+
+function playerCard(p) {
+  var sc = getScoreClass(p.potentialScore);
+  var tagColors = ['tag-green','tag-gold','tag-blue','tag-red'];
+  var tagsHtml = '';
+  if (p.tags) {
+    for (var i = 0; i < p.tags.length; i++) {
+      tagsHtml += '<span class="tag ' + tagColors[i % 4] + '">' + p.tags[i] + '</span>';
+    }
+  }
+  var pData = JSON.stringify(p).replace(/'/g, "&#39;");
+  return '<div class="player-card">'
+    + '<div class="card-header"><div>'
+    + '<div class="player-name">' + p.name + '</div>'
+    + '<div class="player-meta">' + p.position + ' · ' + p.club + '</div>'
+    + '<div class="player-meta">' + p.league + ' · ' + p.nationality + '</div>'
+    + '</div><div class="score-badge ' + sc + '">' + p.potentialScore + '</div></div>'
+    + '<div class="stats-row">'
+    + '<div class="stat-box"><div class="stat-label">Age</div><div class="stat-val">' + p.age + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Goals</div><div class="stat-val">' + (p.goals != null ? p.goals : '—') + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Assists</div><div class="stat-val">' + (p.assists != null ? p.assists : '—') + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Potential</div><div class="stat-val" style="font-size:12px;color:var(--accent);">' + (p.fmRating || 'N/A') + '</div></div>'
+    + '</div>'
+    + '<div class="progress-label">Scout score</div>'
+    + '<div class="progress-bar"><div class="progress-fill" style="width:' + (p.potentialScore || 0) + '%"></div></div>'
+    + '<div class="tags">' + tagsHtml + '</div>'
+    + '<div class="card-footer">'
+    + '<div class="card-value">Market value <strong>' + (p.marketValue || '—') + '</strong></div>'
+    + '<button class="btn-ghost" onclick="openDetail(' + pData + ')">Deep dive →</button>'
+    + '</div></div>';
+}
+
+async function searchCardPrices() {
+  var player = document.getElementById('card-player').value.trim();
+  if (!player) return;
+  var cardType = document.getElementById('card-type').value;
+  showLoading('card-results', 'Searching card prices for ' + player + '...');
+
+  var prompt = 'Search the web for current football trading card prices for ' + player + (cardType ? ', specifically ' + cardType + ' cards' : '') + '. Check eBay sold listings, Panini, Topps, and collector sites. Return a JSON array of up to 6 card listings: { "cardName": string, "set": string, "year": string, "condition": string, "price": string, "priceChange": string, "trend": "up" or "down" or "stable", "source": string, "buyRating": "strong buy" or "buy" or "hold" or "wait", "notes": string } Return only the JSON array.';
+
+  var cards = await callClaudeJSON(prompt);
+  if (!cards || !cards.length) {
+    document.getElementById('card-results').innerHTML = '<div class="empty-state"><div>No card data found for "' + player + '".</div></div>';
+    return;
+  }
+  var html = '<div class="section-title">' + player + ' — Card Market</div><div style="display:grid;gap:12px;">';
+  for (var i = 0; i < cards.length; i++) { html += cardRow(cards[i]); }
+  html += '</div>';
+  document.getElementById('card-results').innerHTML = html;
+}
+
+function cardRow(c) {
+  var trendColor = c.trend === 'up' ? 'var(--accent)' : c.trend === 'down' ? 'var(--red)' : 'var(--faint)';
+  var trendIcon = c.trend === 'up' ? '↑' : c.trend === 'down' ? '↓' : '→';
+  var buyColors = { 'strong buy': 'tag-green', 'buy': 'tag-gold', 'hold': 'tag-blue', 'wait': 'tag-red' };
+  var buyClass = buyColors[c.buyRating] || 'tag-blue';
+  return '<div class="player-card" style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">'
+    + '<div style="flex:1;min-width:200px;">'
+    + '<div class="player-name" style="font-size:15px;margin-bottom:4px;">' + c.cardName + '</div>'
+    + '<div class="player-meta">' + c.set + ' · ' + c.year + ' · ' + c.condition + '</div>'
+    + '<div style="font-size:12px;color:var(--faint);margin-top:8px;line-height:1.5;">' + c.notes + '</div>'
+    + '</div><div style="text-align:right;flex-shrink:0;">'
+    + '<div style="font-family:\'DM Serif Display\',serif;font-size:24px;color:var(--text);margin-bottom:2px;">' + c.price + '</div>'
+    + '<div style="font-size:12px;color:' + trendColor + ';margin-bottom:8px;">' + trendIcon + ' ' + c.priceChange + '</div>'
+    + '<div class="tags" style="justify-content:flex-end;">'
+    + '<span class="tag ' + buyClass + '">' + c.buyRating + '</span>'
+    + '<span style="font-size:11px;color:var(--faint);align-self:center;">' + c.source + '</span>'
+    + '</div></div></div>';
+}
+
+async function searchStats() {
+  var player = document.getElementById('stats-player').value.trim();
+  if (!player) return;
+  var season = document.getElementById('stats-season').value;
+  showLoading('stats-results', 'Loading stats for ' + player + '...');
+
+  var prompt = 'Search the web for ' + player + "'s football stats in the " + season + ' season. Return a JSON object: { "name": string, "club": string, "position": string, "age": number, "appearances": number, "goals": number, "assists": number, "minutesPlayed": number, "rating": number (out of 10), "passAccuracy": string, "keyPasses": number, "form": "excellent" or "good" or "average" or "poor", "formReason": string (1 sentence), "cardInvestmentTake": string (2 sentences), "stats": array of {"label": string, "value": string} with 5-7 items } Return only the JSON object.';
+
+  var stats = await callClaudeJSON(prompt);
+  if (!stats) {
+    document.getElementById('stats-results').innerHTML = '<div class="empty-state"><div>No stats found for "' + player + '".</div></div>';
+    return;
+  }
+
+  var formColors = { excellent: 'var(--accent)', good: 'var(--gold)', average: 'var(--blue)', poor: 'var(--red)' };
+  var formColor = formColors[stats.form] || 'var(--faint)';
+  var extraStats = '';
+  if (stats.stats) {
+    for (var i = 0; i < stats.stats.length; i++) {
+      extraStats += '<div class="divider"><span>' + stats.stats[i].label + '</span><span>' + stats.stats[i].value + '</span></div>';
+    }
+  }
+  var rating = stats.rating ? stats.rating.toFixed(1) : '—';
+  var minutes = stats.minutesPlayed ? stats.minutesPlayed.toLocaleString() : '—';
+
+  document.getElementById('stats-results').innerHTML = '<div class="player-card" style="max-width:580px;">'
+    + '<div class="card-header"><div>'
+    + '<div class="player-name" style="font-size:22px;">' + stats.name + '</div>'
+    + '<div class="player-meta">' + stats.position + ' · ' + stats.club + ' · Age ' + stats.age + '</div>'
+    + '</div><div style="text-align:right;">'
+    + '<div style="font-family:\'DM Serif Display\',serif;font-size:32px;color:var(--accent);line-height:1;">' + rating + '</div>'
+    + '<div style="font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:var(--faint);margin-top:3px;">Rating</div>'
+    + '</div></div>'
+    + '<div class="stats-row">'
+    + '<div class="stat-box"><div class="stat-label">Apps</div><div class="stat-val">' + stats.appearances + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Goals</div><div class="stat-val">' + stats.goals + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Assists</div><div class="stat-val">' + stats.assists + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Minutes</div><div class="stat-val" style="font-size:13px;">' + minutes + '</div></div>'
+    + '</div>'
+    + '<div style="padding:14px 16px;background:var(--bg);border-radius:4px;margin:16px 0;">'
+    + '<div style="font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:var(--faint);margin-bottom:5px;">Current Form</div>'
+    + '<div style="font-size:14px;font-weight:600;color:' + formColor + ';text-transform:capitalize;margin-bottom:4px;">' + stats.form + '</div>'
+    + '<div style="font-size:12px;color:var(--muted);line-height:1.6;">' + stats.formReason + '</div>'
+    + '</div>'
+    + extraStats
+    + '<div class="callout"><div class="callout-label">Card Investment Take</div><div class="callout-text">' + stats.cardInvestmentTake + '</div></div>'
+    + '</div>';
+}
+
+async function openDetail(player) {
+  document.getElementById('detail-modal').classList.add('open');
+  document.getElementById('modal-content').innerHTML = '<div style="font-family:\'DM Serif Display\',serif;font-size:20px;color:var(--text);margin-bottom:4px;">' + player.name + '</div>'
+    + '<div style="font-size:12px;color:var(--muted);margin-bottom:28px;">' + player.position + ' · ' + player.club + '</div>'
+    + '<div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;">'
+    + '<div class="typing-indicator"><span></span><span></span><span></span></div>'
+    + '<span>Researching player...</span></div>';
+
+  var prompt = 'Give a detailed scouting report and card investment analysis for ' + player.name + ' (' + player.age + ', ' + player.position + ' at ' + player.club + '). Cover: playing style, key strengths, weaknesses, injury history, upcoming fixtures, transfer rumours, card market outlook, and a buy/hold/sell recommendation for their trading cards right now in March 2026. Be specific and data-driven. Use current web information.';
+
+  var report = await callClaude(prompt);
+  var pData = JSON.stringify(player).replace(/'/g, "&#39;");
+
+  document.getElementById('modal-content').innerHTML = '<div style="font-family:\'DM Serif Display\',serif;font-size:20px;color:var(--text);margin-bottom:4px;">' + player.name + '</div>'
+    + '<div style="font-size:12px;color:var(--muted);margin-bottom:24px;">' + player.position + ' · ' + player.club + '</div>'
+    + '<div class="ai-response">' + report + '</div>'
+    + '<div style="margin-top:28px;display:flex;gap:10px;">'
+    + '<button class="btn" onclick="addToWatchlist(' + pData + ')">Add to Watchlist</button>'
+    + '<button class="btn-ghost" onclick="closeModal()">Close</button>'
+    + '</div>';
+}
+
+function closeModal() {
+  document.getElementById('detail-modal').classList.remove('open');
+}
+
+function addToWatchlist(player) {
+  if (!watchlist.find(function(p) { return p.name === player.name; })) {
+    player.addedAt = new Date().toLocaleDateString('en-GB');
+    watchlist.push(player);
+    try { localStorage.setItem('scoutcard-watchlist', JSON.stringify(watchlist)); } catch (e) {}
+  }
+  closeModal();
+}
+
+function renderWatchlist() {
+  var el = document.getElementById('watchlist-container');
+  if (!watchlist.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>No players saved yet.<br>Deep dive a wonderkid to add them.</div></div>';
+    return;
+  }
+  var tagColors = ['tag-green','tag-gold','tag-blue','tag-red'];
+  var html = '<div class="results-grid">';
+  for (var i = 0; i < watchlist.length; i++) {
+    var p = watchlist[i];
+    var tagsHtml = '';
+    if (p.tags) {
+      for (var j = 0; j < p.tags.length; j++) {
+        tagsHtml += '<span class="tag ' + tagColors[j % 4] + '">' + p.tags[j] + '</span>';
+      }
+    }
+    html += '<div class="player-card">'
+      + '<div class="card-header"><div>'
+      + '<div class="player-name">' + p.name + '</div>'
+      + '<div class="player-meta">' + p.position + ' · ' + p.club + '</div>'
+      + '<div class="player-meta">Added ' + p.addedAt + '</div>'
+      + '</div><div class="score-badge ' + getScoreClass(p.potentialScore) + '">' + p.potentialScore + '</div></div>'
+      + '<div class="tags">' + tagsHtml + '</div>'
+      + '<div class="card-footer">'
+      + '<div class="card-value">Value <strong>' + (p.marketValue || '—') + '</strong></div>'
+      + '<button class="btn-ghost" onclick="removeFromWatchlist(\'' + p.name.replace(/'/g, "\\'") + '\')">Remove</button>'
+      + '</div></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function removeFromWatchlist(name) {
+  watchlist = watchlist.filter(function(p) { return p.name !== name; });
+  try { localStorage.setItem('scoutcard-watchlist', JSON.stringify(watchlist)); } catch (e) {}
+  renderWatchlist();
+}
+
+document.getElementById('detail-modal').addEventListener('click', function(e) {
+  if (e.target === document.getElementById('detail-modal')) closeModal();
+});
+</script>
+</body>
+</html>
