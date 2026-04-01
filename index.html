@@ -487,7 +487,7 @@
 </div>
 
 <div id="panel-wonderkids" class="panel active">
-  <div class="alert-info">AI scours multiple sources to find top wonderkids based on age, current form, potential ratings, transfer buzz, and market interest. Results are scored 0–100.</div>
+  <div class="alert-info">AI scours Transfermarkt, FBref, WhoScored, and football news to find top wonderkids based on age, current form, market value growth, and transfer buzz. Results are scored 0–100.</div>
   <div class="search-bar">
     <select id="wk-league">
       <option value="">All Leagues</option>
@@ -671,11 +671,11 @@ async function searchWonderkids() {
   var age = document.getElementById('wk-age').value;
   showLoading('wk-results', 'Scanning sources for wonderkids...');
 
-  var prompt = 'You are a football card investment analyst. Search the web for the top 6 real-life football wonderkids right now in April 2026, cross-referencing TWO sources: 1) Real-world performance data from Transfermarkt, FBref, WhoScored and football news. 2) Wonderkid potential ratings from fmscout.com - these potential ratings are a leading indicator for card price movements. Filters: ' +
+  var prompt = 'You are a football card investment analyst. Search the web for the top 6 real-life football wonderkids right now in April 2026. Use real-world sources only: Transfermarkt for market values and value trends, FBref and WhoScored for performance data, and recent football news for transfer buzz and hype. Filters: ' +
     (league ? 'League: ' + league : 'All top leagues') + ', ' +
     (pos ? 'Position: ' + pos : 'All positions') + ', Under ' + age + ' years old. ' +
-    'Prioritise players who rank highly in BOTH real-world form AND scouting potential as these are the strongest card investment signals. ' +
-    'Return a JSON array of exactly 6 objects: { "name": string, "age": number, "club": string, "league": string, "position": string, "nationality": string, "potentialScore": number (0-100), "fmRating": string (e.g. "5-star" or "PA 180", otherwise "N/A"), "goals": number, "assists": number, "marketValue": string (e.g. "45M EUR"), "tags": array of 2-4 short tag strings, "buySignal": string (1 sentence card investment recommendation) }';
+    'Prioritise players with strong recent form, rising Transfermarkt valuations, and high transfer interest — these are the strongest card investment signals. ' +
+    'Return a JSON array of exactly 6 objects: { "name": string, "age": number, "club": string, "league": string, "position": string, "nationality": string, "potentialScore": number (0-100 based on real-world form, valuation growth, and transfer buzz), "valueTrend": string (e.g. "+€20M in 6mo" or "stable" — Transfermarkt value change), "goals": number, "assists": number, "marketValue": string (e.g. "45M EUR"), "tags": array of 2-4 short tag strings, "buySignal": string (1 sentence card investment recommendation) }';
 
   var players = await callGemini(prompt, true);
 
@@ -709,7 +709,7 @@ function playerCard(p) {
     + '<div class="stat-box"><div class="stat-label">Age</div><div class="stat-val">' + p.age + '</div></div>'
     + '<div class="stat-box"><div class="stat-label">Goals</div><div class="stat-val">' + (p.goals != null ? p.goals : '—') + '</div></div>'
     + '<div class="stat-box"><div class="stat-label">Assists</div><div class="stat-val">' + (p.assists != null ? p.assists : '—') + '</div></div>'
-    + '<div class="stat-box"><div class="stat-label">Potential</div><div class="stat-val" style="font-size:12px;color:var(--accent);">' + (p.fmRating || 'N/A') + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Val. Trend</div><div class="stat-val" style="font-size:11px;color:var(--accent);">' + (p.valueTrend || '—') + '</div></div>'
     + '</div>'
     + '<div class="progress-label">Scout score</div>'
     + '<div class="progress-bar"><div class="progress-fill" style="width:' + (p.potentialScore || 0) + '%"></div></div>'
