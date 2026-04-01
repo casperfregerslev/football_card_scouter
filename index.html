@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ScoutCard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f5f3ef;
@@ -69,6 +69,11 @@
     background: var(--accent);
     border-radius: 50%;
     display: block;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 
   .api-banner {
@@ -265,7 +270,7 @@
 
   .score-badge {
     font-family: 'Manrope', sans-serif;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 20px;
     width: 48px;
     height: 48px;
@@ -437,6 +442,17 @@
   }
   .callout-text { font-size: 13px; color: var(--text); line-height: 1.75; }
 
+  .gemini-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--faint);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 7px;
+  }
+
   @media (max-width: 680px) {
     header, .api-banner, .tabs { padding-left: 20px; padding-right: 20px; }
     .panel { padding: 24px 20px; }
@@ -449,15 +465,18 @@
 
 <header>
   <div class="logo">Scout<em>Card</em></div>
-  <div class="live-dot">Live Research</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="gemini-badge">Gemini 2.0</span>
+    <div class="live-dot">Live Research</div>
+  </div>
 </header>
 
 <div class="api-banner">
-  <label>API Key</label>
-  <input id="api-key-input" type="password" placeholder="Paste your Anthropic API key (sk-ant-...)" />
+  <label>Gemini API Key</label>
+  <input id="api-key-input" type="password" placeholder="Paste your Google Gemini API key (AIza...)" />
   <button class="btn-save" onclick="saveApiKey()">Save</button>
   <span id="key-status" class="key-status"></span>
-  <a href="https://console.anthropic.com/settings/keys" target="_blank">Get a key →</a>
+  <a href="https://aistudio.google.com/app/apikey" target="_blank">Get a free key →</a>
 </div>
 
 <div class="tabs">
@@ -548,36 +567,28 @@
 </div>
 
 <script>
-const API_URL = "https://api.anthropic.com/v1/messages";
-let watchlist = JSON.parse(localStorage.getItem('scoutcard-watchlist') || '[]');
+// ── In-memory state (no localStorage) ──────────────────────────────────────
+var _apiKey = '';
+var watchlist = [];
 
+// ── Key management ──────────────────────────────────────────────────────────
 function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  const status = document.getElementById('key-status');
-  if (!key.startsWith('sk-ant-')) {
+  var key = document.getElementById('api-key-input').value.trim();
+  var status = document.getElementById('key-status');
+  if (!key.startsWith('AIza')) {
     status.className = 'key-status error';
-    status.textContent = 'Invalid key format';
+    status.textContent = 'Invalid key format (should start with AIza...)';
     return;
   }
-  try { localStorage.setItem('scoutcard-apikey', key); } catch {}
+  _apiKey = key;
   status.className = 'key-status';
-  status.textContent = '✓ Saved';
+  status.textContent = '✓ Saved for this session';
   document.getElementById('api-key-input').value = '••••••••••••••••••••';
 }
 
-function getApiKey() {
-  try { return localStorage.getItem('scoutcard-apikey') || ''; } catch { return ''; }
-}
+function getApiKey() { return _apiKey; }
 
-window.addEventListener('load', function() {
-  if (getApiKey()) {
-    document.getElementById('api-key-input').value = '••••••••••••••••••••';
-    var s = document.getElementById('key-status');
-    s.className = 'key-status';
-    s.textContent = '✓ Key loaded';
-  }
-});
-
+// ── Tabs ────────────────────────────────────────────────────────────────────
 function switchTab(name, e) {
   document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
@@ -586,54 +597,60 @@ function switchTab(name, e) {
   if (name === 'watchlist') renderWatchlist();
 }
 
-async function callClaude(prompt) {
+// ── Gemini API call (gemini-2.0-flash, with Google Search grounding) ────────
+async function callGemini(prompt, wantJSON) {
   var key = getApiKey();
-  if (!key) { alert('Please enter your Anthropic API key at the top of the page.'); return ''; }
-  var res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  var data = await res.json();
-  var textBlock = data.content && data.content.find(function(b) { return b.type === 'text'; });
-  return textBlock ? textBlock.text : '';
+  if (!key) { alert('Please enter your Google Gemini API key at the top of the page.'); return wantJSON ? null : ''; }
+
+  var systemInstruction = wantJSON
+    ? 'You are a football analytics AI. Always respond with valid JSON only. No markdown, no backticks, no explanation outside the JSON structure.'
+    : 'You are a football analytics and card investment expert. Be specific, data-driven, and current.';
+
+  var body = {
+    system_instruction: { parts: [{ text: systemInstruction }] },
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    tools: [{ google_search: {} }]
+  };
+
+  try {
+    var res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }
+    );
+    var data = await res.json();
+
+    if (data.error) {
+      var errMsg = data.error.message || 'API error';
+      document.getElementById('key-status').className = 'key-status error';
+      document.getElementById('key-status').textContent = errMsg;
+      return wantJSON ? null : '';
+    }
+
+    var text = '';
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      var parts = data.candidates[0].content.parts || [];
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].text) text += parts[i].text;
+      }
+    }
+
+    if (wantJSON) {
+      var clean = text.replace(/```json|```/g, '').trim();
+      try { return JSON.parse(clean); } catch (e) { return null; }
+    }
+    return text;
+
+  } catch (err) {
+    console.error('Gemini error:', err);
+    return wantJSON ? null : '';
+  }
 }
 
-async function callClaudeJSON(prompt) {
-  var key = getApiKey();
-  if (!key) { alert('Please enter your Anthropic API key at the top of the page.'); return null; }
-  var res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: 'You are a football analytics AI. Always respond with valid JSON only. No markdown, no backticks, no explanation outside the JSON structure.',
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  var data = await res.json();
-  var textBlock = data.content && data.content.find(function(b) { return b.type === 'text'; });
-  var raw = textBlock ? textBlock.text : '[]';
-  try { return JSON.parse(raw.replace(/```json|```/g, '').trim()); } catch (e) { return null; }
-}
-
+// ── Helpers ─────────────────────────────────────────────────────────────────
 function getScoreClass(score) {
   if (score >= 85) return 'elite';
   if (score >= 70) return 'high';
@@ -642,20 +659,28 @@ function getScoreClass(score) {
 }
 
 function showLoading(id, msg) {
-  document.getElementById(id).innerHTML = '<div class="loading-state"><div style="font-size:13px;color:var(--muted);">' + msg + '</div><div class="loading-dots"><span></span><span></span><span></span></div></div>';
+  document.getElementById(id).innerHTML =
+    '<div class="loading-state"><div style="font-size:13px;color:var(--muted);">' + msg +
+    '</div><div class="loading-dots"><span></span><span></span><span></span></div></div>';
 }
 
+// ── Wonderkids ───────────────────────────────────────────────────────────────
 async function searchWonderkids() {
   var league = document.getElementById('wk-league').value;
   var pos = document.getElementById('wk-pos').value;
   var age = document.getElementById('wk-age').value;
   showLoading('wk-results', 'Scanning sources for wonderkids...');
 
-  var prompt = 'You are a football card investment analyst. Search the web for the top 6 real-life football wonderkids right now in March 2026, cross-referencing TWO sources: 1) Real-world performance data from Transfermarkt, FBref, WhoScored and football news. 2) Wonderkid potential ratings from fmscout.com - these potential ratings are a leading indicator for card price movements. Filters: ' + (league ? 'League: ' + league : 'All top leagues') + ', ' + (pos ? 'Position: ' + pos : 'All positions') + ', Under ' + age + ' years old. Prioritise players who rank highly in BOTH real-world form AND scouting potential as these are the strongest card investment signals. For each player return a JSON array with objects: { "name": string, "age": number, "club": string, "league": string, "position": string, "nationality": string, "potentialScore": number (0-100), "fmRating": string (potential stars or PA rating e.g. "5-star" or "PA 180", otherwise "N/A"), "goals": number, "assists": number, "marketValue": string (e.g. "45M EUR"), "tags": array of 2-4 short tag strings, "buySignal": string (1 sentence card investment recommendation) } Return only the JSON array.';
+  var prompt = 'You are a football card investment analyst. Search the web for the top 6 real-life football wonderkids right now in April 2026, cross-referencing TWO sources: 1) Real-world performance data from Transfermarkt, FBref, WhoScored and football news. 2) Wonderkid potential ratings from fmscout.com - these potential ratings are a leading indicator for card price movements. Filters: ' +
+    (league ? 'League: ' + league : 'All top leagues') + ', ' +
+    (pos ? 'Position: ' + pos : 'All positions') + ', Under ' + age + ' years old. ' +
+    'Prioritise players who rank highly in BOTH real-world form AND scouting potential as these are the strongest card investment signals. ' +
+    'Return a JSON array of exactly 6 objects: { "name": string, "age": number, "club": string, "league": string, "position": string, "nationality": string, "potentialScore": number (0-100), "fmRating": string (e.g. "5-star" or "PA 180", otherwise "N/A"), "goals": number, "assists": number, "marketValue": string (e.g. "45M EUR"), "tags": array of 2-4 short tag strings, "buySignal": string (1 sentence card investment recommendation) }';
 
-  var players = await callClaudeJSON(prompt);
-  if (!players || !players.length) {
-    document.getElementById('wk-results').innerHTML = '<div class="empty-state"><div>Could not fetch results. Try again.</div></div>';
+  var players = await callGemini(prompt, true);
+
+  if (!players || !Array.isArray(players) || !players.length) {
+    document.getElementById('wk-results').innerHTML = '<div class="empty-state"><div>Could not fetch results. Check your API key and try again.</div></div>';
     return;
   }
   var html = '<div class="results-grid">';
@@ -673,7 +698,7 @@ function playerCard(p) {
       tagsHtml += '<span class="tag ' + tagColors[i % 4] + '">' + p.tags[i] + '</span>';
     }
   }
-  var pData = JSON.stringify(p).replace(/'/g, "&#39;");
+  var pData = JSON.stringify(p).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
   return '<div class="player-card">'
     + '<div class="card-header"><div>'
     + '<div class="player-name">' + p.name + '</div>'
@@ -691,20 +716,25 @@ function playerCard(p) {
     + '<div class="tags">' + tagsHtml + '</div>'
     + '<div class="card-footer">'
     + '<div class="card-value">Market value <strong>' + (p.marketValue || '—') + '</strong></div>'
-    + '<button class="btn-ghost" onclick="openDetail(' + pData + ')">Deep dive →</button>'
+    + '<button class="btn-ghost" onclick=\'openDetail(' + JSON.stringify(p).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + ')\'>Deep dive →</button>'
     + '</div></div>';
 }
 
+// ── Card Prices ──────────────────────────────────────────────────────────────
 async function searchCardPrices() {
   var player = document.getElementById('card-player').value.trim();
   if (!player) return;
   var cardType = document.getElementById('card-type').value;
   showLoading('card-results', 'Searching card prices for ' + player + '...');
 
-  var prompt = 'Search the web for current football trading card prices for ' + player + (cardType ? ', specifically ' + cardType + ' cards' : '') + '. Check eBay sold listings, Panini, Topps, and collector sites. Return a JSON array of up to 6 card listings: { "cardName": string, "set": string, "year": string, "condition": string, "price": string, "priceChange": string, "trend": "up" or "down" or "stable", "source": string, "buyRating": "strong buy" or "buy" or "hold" or "wait", "notes": string } Return only the JSON array.';
+  var prompt = 'Search the web for current football trading card prices for ' + player +
+    (cardType ? ', specifically ' + cardType + ' cards' : '') +
+    '. Check eBay sold listings, Panini, Topps, and collector sites. Return a JSON array of up to 6 card listings: ' +
+    '{ "cardName": string, "set": string, "year": string, "condition": string, "price": string, "priceChange": string, "trend": "up" or "down" or "stable", "source": string, "buyRating": "strong buy" or "buy" or "hold" or "wait", "notes": string }';
 
-  var cards = await callClaudeJSON(prompt);
-  if (!cards || !cards.length) {
+  var cards = await callGemini(prompt, true);
+
+  if (!cards || !Array.isArray(cards) || !cards.length) {
     document.getElementById('card-results').innerHTML = '<div class="empty-state"><div>No card data found for "' + player + '".</div></div>';
     return;
   }
@@ -733,16 +763,19 @@ function cardRow(c) {
     + '</div></div></div>';
 }
 
+// ── Stats ────────────────────────────────────────────────────────────────────
 async function searchStats() {
   var player = document.getElementById('stats-player').value.trim();
   if (!player) return;
   var season = document.getElementById('stats-season').value;
   showLoading('stats-results', 'Loading stats for ' + player + '...');
 
-  var prompt = 'Search the web for ' + player + "'s football stats in the " + season + ' season. Return a JSON object: { "name": string, "club": string, "position": string, "age": number, "appearances": number, "goals": number, "assists": number, "minutesPlayed": number, "rating": number (out of 10), "passAccuracy": string, "keyPasses": number, "form": "excellent" or "good" or "average" or "poor", "formReason": string (1 sentence), "cardInvestmentTake": string (2 sentences), "stats": array of {"label": string, "value": string} with 5-7 items } Return only the JSON object.';
+  var prompt = 'Search the web for ' + player + "'s football stats in the " + season +
+    ' season. Return a JSON object: { "name": string, "club": string, "position": string, "age": number, "appearances": number, "goals": number, "assists": number, "minutesPlayed": number, "rating": number (out of 10), "passAccuracy": string, "keyPasses": number, "form": "excellent" or "good" or "average" or "poor", "formReason": string (1 sentence), "cardInvestmentTake": string (2 sentences), "stats": array of {"label": string, "value": string} with 5-7 items }';
 
-  var stats = await callClaudeJSON(prompt);
-  if (!stats) {
+  var stats = await callGemini(prompt, true);
+
+  if (!stats || typeof stats !== 'object' || Array.isArray(stats)) {
     document.getElementById('stats-results').innerHTML = '<div class="empty-state"><div>No stats found for "' + player + '".</div></div>';
     return;
   }
@@ -755,8 +788,8 @@ async function searchStats() {
       extraStats += '<div class="divider"><span>' + stats.stats[i].label + '</span><span>' + stats.stats[i].value + '</span></div>';
     }
   }
-  var rating = stats.rating ? stats.rating.toFixed(1) : '—';
-  var minutes = stats.minutesPlayed ? stats.minutesPlayed.toLocaleString() : '—';
+  var rating = stats.rating ? parseFloat(stats.rating).toFixed(1) : '—';
+  var minutes = stats.minutesPlayed ? parseInt(stats.minutesPlayed).toLocaleString() : '—';
 
   document.getElementById('stats-results').innerHTML = '<div class="player-card" style="max-width:580px;">'
     + '<div class="card-header"><div>'
@@ -767,9 +800,9 @@ async function searchStats() {
     + '<div style="font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:var(--faint);margin-top:3px;">Rating</div>'
     + '</div></div>'
     + '<div class="stats-row">'
-    + '<div class="stat-box"><div class="stat-label">Apps</div><div class="stat-val">' + stats.appearances + '</div></div>'
-    + '<div class="stat-box"><div class="stat-label">Goals</div><div class="stat-val">' + stats.goals + '</div></div>'
-    + '<div class="stat-box"><div class="stat-label">Assists</div><div class="stat-val">' + stats.assists + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Apps</div><div class="stat-val">' + (stats.appearances || '—') + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Goals</div><div class="stat-val">' + (stats.goals != null ? stats.goals : '—') + '</div></div>'
+    + '<div class="stat-box"><div class="stat-label">Assists</div><div class="stat-val">' + (stats.assists != null ? stats.assists : '—') + '</div></div>'
     + '<div class="stat-box"><div class="stat-label">Minutes</div><div class="stat-val" style="font-size:13px;">' + minutes + '</div></div>'
     + '</div>'
     + '<div style="padding:14px 16px;background:var(--bg);border-radius:4px;margin:16px 0;">'
@@ -782,37 +815,52 @@ async function searchStats() {
     + '</div>';
 }
 
+// ── Deep Dive Modal ──────────────────────────────────────────────────────────
 async function openDetail(player) {
   document.getElementById('detail-modal').classList.add('open');
-  document.getElementById('modal-content').innerHTML = '<div style="font-family:\'DM Serif Display\',serif;font-size:20px;color:var(--text);margin-bottom:4px;">' + player.name + '</div>'
+  document.getElementById('modal-content').innerHTML =
+    '<div style="font-family:\'DM Serif Display\',serif;font-size:20px;color:var(--text);margin-bottom:4px;">' + player.name + '</div>'
     + '<div style="font-size:12px;color:var(--muted);margin-bottom:28px;">' + player.position + ' · ' + player.club + '</div>'
     + '<div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;">'
     + '<div class="typing-indicator"><span></span><span></span><span></span></div>'
     + '<span>Researching player...</span></div>';
 
-  var prompt = 'Give a detailed scouting report and card investment analysis for ' + player.name + ' (' + player.age + ', ' + player.position + ' at ' + player.club + '). Cover: playing style, key strengths, weaknesses, injury history, upcoming fixtures, transfer rumours, card market outlook, and a buy/hold/sell recommendation for their trading cards right now in March 2026. Be specific and data-driven. Use current web information.';
+  var prompt = 'Give a detailed scouting report and card investment analysis for ' + player.name +
+    ' (' + player.age + ', ' + player.position + ' at ' + player.club +
+    '). Cover: playing style, key strengths, weaknesses, injury history, upcoming fixtures, transfer rumours, card market outlook, and a buy/hold/sell recommendation for their trading cards right now in April 2026. Be specific and data-driven. Use current web information.';
 
-  var report = await callClaude(prompt);
-  var pData = JSON.stringify(player).replace(/'/g, "&#39;");
+  var report = await callGemini(prompt, false);
 
-  document.getElementById('modal-content').innerHTML = '<div style="font-family:\'DM Serif Display\',serif;font-size:20px;color:var(--text);margin-bottom:4px;">' + player.name + '</div>'
+  var playerJSON = JSON.stringify(player);
+  document.getElementById('modal-content').innerHTML =
+    '<div style="font-family:\'DM Serif Display\',serif;font-size:20px;color:var(--text);margin-bottom:4px;">' + player.name + '</div>'
     + '<div style="font-size:12px;color:var(--muted);margin-bottom:24px;">' + player.position + ' · ' + player.club + '</div>'
     + '<div class="ai-response">' + report + '</div>'
-    + '<div style="margin-top:28px;display:flex;gap:10px;">'
-    + '<button class="btn" onclick="addToWatchlist(' + pData + ')">Add to Watchlist</button>'
-    + '<button class="btn-ghost" onclick="closeModal()">Close</button>'
-    + '</div>';
+    + '<div style="margin-top:28px;display:flex;gap:10px;" id="modal-actions"></div>';
+
+  // Build button via JS to avoid inline JSON quoting issues
+  var actionsEl = document.getElementById('modal-actions');
+  var addBtn = document.createElement('button');
+  addBtn.className = 'btn';
+  addBtn.textContent = 'Add to Watchlist';
+  addBtn.onclick = function() { addToWatchlist(player); };
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'btn-ghost';
+  closeBtn.textContent = 'Close';
+  closeBtn.onclick = closeModal;
+  actionsEl.appendChild(addBtn);
+  actionsEl.appendChild(closeBtn);
 }
 
 function closeModal() {
   document.getElementById('detail-modal').classList.remove('open');
 }
 
+// ── Watchlist (in-memory) ────────────────────────────────────────────────────
 function addToWatchlist(player) {
   if (!watchlist.find(function(p) { return p.name === player.name; })) {
     player.addedAt = new Date().toLocaleDateString('en-GB');
     watchlist.push(player);
-    try { localStorage.setItem('scoutcard-watchlist', JSON.stringify(watchlist)); } catch (e) {}
   }
   closeModal();
 }
@@ -842,19 +890,20 @@ function renderWatchlist() {
       + '<div class="tags">' + tagsHtml + '</div>'
       + '<div class="card-footer">'
       + '<div class="card-value">Value <strong>' + (p.marketValue || '—') + '</strong></div>'
-      + '<button class="btn-ghost" onclick="removeFromWatchlist(\'' + p.name.replace(/'/g, "\\'") + '\')">Remove</button>'
+      + '<button class="btn-ghost" data-name="' + p.name.replace(/"/g, '&quot;') + '" onclick="removeFromWatchlistByBtn(this)">Remove</button>'
       + '</div></div>';
   }
   html += '</div>';
   el.innerHTML = html;
 }
 
-function removeFromWatchlist(name) {
+function removeFromWatchlistByBtn(btn) {
+  var name = btn.getAttribute('data-name');
   watchlist = watchlist.filter(function(p) { return p.name !== name; });
-  try { localStorage.setItem('scoutcard-watchlist', JSON.stringify(watchlist)); } catch (e) {}
   renderWatchlist();
 }
 
+// Close modal on backdrop click
 document.getElementById('detail-modal').addEventListener('click', function(e) {
   if (e.target === document.getElementById('detail-modal')) closeModal();
 });
